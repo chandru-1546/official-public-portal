@@ -7,7 +7,8 @@ import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import AuthSelect from "./pages/AuthSelect";
 import OfficialAuth from "./pages/auth/OfficialAuth";
-import PublicAuth from "./pages/auth/PublicAuth";
+import PublicDashboard from "./pages/auth/PublicDashboard";
+import ReportIssue from "./pages/ReportIssue";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,7 +24,8 @@ const App = () => (
           <Route path="/dashboard" element={<Index />} />
           <Route path="/auth-select" element={<AuthSelect />} />
           <Route path="/auth/official" element={<OfficialAuth />} />
-          <Route path="/auth/public" element={<PublicAuth />} />
+          <Route path="/auth/public" element={<PublicDashboard />} />
+          <Route path="/report-issue" element={<ReportIssue />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
