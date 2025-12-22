@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -16,37 +16,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-// Mock data for reported issues
-const mockReportedIssues = [
-  {
-    id: "1",
-    title: "Pothole on Main Street",
-    description: "Large pothole causing traffic issues near the intersection.",
-    type: "Road & Infrastructure",
-    status: "in-progress",
-    createdAt: "2024-01-15",
-    fileUrl: null,
-  },
-  {
-    id: "2",
-    title: "Broken Street Light",
-    description: "Street light not working on Oak Avenue for the past week.",
-    type: "Utilities",
-    status: "pending",
-    createdAt: "2024-01-18",
-    fileUrl: null,
-  },
-  {
-    id: "3",
-    title: "Garbage Collection Missed",
-    description: "Garbage was not collected on scheduled day.",
-    type: "Sanitation",
-    status: "resolved",
-    createdAt: "2024-01-10",
-    fileUrl: null,
-  },
-];
-
+interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  issue_type: string;
+  status: string;
+  created_at: string;
+  file_url: string | null;
+}
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -88,6 +66,7 @@ const PublicDashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState<{ full_name: string; email: string; phone: string | null } | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -97,21 +76,36 @@ const PublicDashboard = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchData = async () => {
       if (user) {
-        const { data } = await supabase
+        // Fetch profile
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("full_name, email, phone")
           .eq("id", user.id)
           .maybeSingle();
         
-        if (data) {
-          setProfile(data);
+        if (profileData) {
+          setProfile(profileData);
         }
+
+        // Fetch issues
+        const { data: issuesData, error } = await supabase
+          .from("issues")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error("Error fetching issues:", error);
+        } else {
+          setIssues(issuesData || []);
+        }
+
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchData();
   }, [user]);
 
   const handleLogout = async () => {
@@ -211,7 +205,7 @@ const PublicDashboard = () => {
                 <FileText className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{mockReportedIssues.length}</p>
+                <p className="text-2xl font-bold text-foreground">{issues.length}</p>
                 <p className="text-sm text-muted-foreground">Total Reports</p>
               </div>
             </CardContent>
@@ -224,7 +218,7 @@ const PublicDashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">
-                  {mockReportedIssues.filter(i => i.status === "pending").length}
+                  {issues.filter(i => i.status === "pending").length}
                 </p>
                 <p className="text-sm text-muted-foreground">Pending</p>
               </div>
@@ -238,7 +232,7 @@ const PublicDashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">
-                  {mockReportedIssues.filter(i => i.status === "in-progress").length}
+                  {issues.filter(i => i.status === "in-progress").length}
                 </p>
                 <p className="text-sm text-muted-foreground">In Progress</p>
               </div>
@@ -252,7 +246,7 @@ const PublicDashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">
-                  {mockReportedIssues.filter(i => i.status === "resolved").length}
+                  {issues.filter(i => i.status === "resolved").length}
                 </p>
                 <p className="text-sm text-muted-foreground">Resolved</p>
               </div>
@@ -267,7 +261,7 @@ const PublicDashboard = () => {
             <CardDescription>Track the status of issues you've reported</CardDescription>
           </CardHeader>
           <CardContent>
-            {mockReportedIssues.length === 0 ? (
+            {issues.length === 0 ? (
               <div className="text-center py-12">
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No issues reported yet</h3>
@@ -279,7 +273,7 @@ const PublicDashboard = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {mockReportedIssues.map((issue) => (
+                {issues.map((issue) => (
                   <div
                     key={issue.id}
                     className="p-4 rounded-lg border border-border bg-background/50 hover:bg-accent/50 transition-colors"
@@ -296,10 +290,10 @@ const PublicDashboard = () => {
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Badge variant="outline" className="text-xs">
-                              {issue.type}
+                              {issue.issue_type}
                             </Badge>
                           </span>
-                          <span>Reported on {new Date(issue.createdAt).toLocaleDateString()}</span>
+                          <span>Reported on {new Date(issue.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>

@@ -12,8 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Upload, X, FileText, Image, File } from "lucide-react";
+import { ArrowLeft, Upload, X, FileText, Image, File, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const issueTypes = [
   "Road & Infrastructure",
@@ -28,6 +30,7 @@ const issueTypes = [
 
 const ReportIssue = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -48,7 +51,6 @@ const ReportIssue = () => {
     if (files) {
       const newFiles = Array.from(files);
       const validFiles = newFiles.filter((file) => {
-        // Accept images and common document types
         const validTypes = [
           "image/jpeg",
           "image/png",
@@ -90,6 +92,12 @@ const ReportIssue = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!user) {
+      toast.error("Please log in to submit an issue");
+      navigate("/auth/public");
+      return;
+    }
+
     if (!formData.title.trim()) {
       toast.error("Please enter a title for your issue");
       return;
@@ -105,15 +113,57 @@ const ReportIssue = () => {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      let fileUrl: string | null = null;
 
-    toast.success("Issue reported successfully!", {
-      description: "We'll review your report and get back to you soon.",
-    });
+      // Upload file if present
+      if (uploadedFiles.length > 0) {
+        const file = uploadedFiles[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-    setIsSubmitting(false);
-    navigate("/auth/public");
+        const { error: uploadError, data: uploadData } = await supabase.storage
+          .from('issue-attachments')
+          .upload(fileName, file);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast.error('Failed to upload attachment');
+        } else {
+          const { data: urlData } = supabase.storage
+            .from('issue-attachments')
+            .getPublicUrl(fileName);
+          fileUrl = urlData.publicUrl;
+        }
+      }
+
+      // Insert issue into database
+      const { error } = await supabase.from('issues').insert({
+        user_id: user.id,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        issue_type: formData.issueType,
+        file_url: fileUrl,
+      });
+
+      if (error) {
+        console.error('Insert error:', error);
+        toast.error('Failed to submit issue. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.success("Issue reported successfully!", {
+        description: "We'll review your report and get back to you soon.",
+      });
+
+      navigate("/auth/public/dashboard");
+    } catch (err) {
+      console.error('Submit error:', err);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -124,7 +174,7 @@ const ReportIssue = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/auth/public")}
+            onClick={() => navigate("/auth/public/dashboard")}
             className="rounded-full"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -281,7 +331,7 @@ const ReportIssue = () => {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => navigate("/auth/public")}
+                  onClick={() => navigate("/auth/public/dashboard")}
                 >
                   Cancel
                 </Button>
@@ -290,7 +340,14 @@ const ReportIssue = () => {
                   className="flex-1 bg-primary hover:bg-primary/90"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Report"}
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Report"
+                  )}
                 </Button>
               </div>
             </form>
