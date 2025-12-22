@@ -4,12 +4,8 @@ import { Shield, ExternalLink, Loader2 } from "lucide-react";
 
 const OfficialAuth = () => {
   useEffect(() => {
-    // Redirect to the official CivicFix platform after a short delay
-    const timer = setTimeout(() => {
-      window.location.href = "https://id-preview--be4e1b6f-e14e-4c1c-9b88-0a5b86b43685.lovable.app/";
-    }, 2000);
-
-    return () => clearTimeout(timer);
+    // Redirect immediately to the official CivicFix platform
+    window.location.href = "https://id-preview--be4e1b6f-e14e-4c1c-9b88-0a5b86b43685.lovable.app/";
   }, []);
 
   return (
