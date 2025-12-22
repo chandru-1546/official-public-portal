@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +11,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { User, Plus, FileText, Clock, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { User, Plus, FileText, Clock, CheckCircle, AlertCircle, XCircle, LogOut, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock data for reported issues
 const mockReportedIssues = [
@@ -45,15 +47,6 @@ const mockReportedIssues = [
   },
 ];
 
-// Mock user profile data
-const mockUserProfile = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  phone: "+1 (555) 123-4567",
-  address: "123 Civic Lane, City Center",
-  joinedDate: "January 2024",
-  avatar: null,
-};
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -92,7 +85,49 @@ const getStatusBadge = (status: string) => {
 
 const PublicDashboard = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<{ full_name: string; email: string; phone: string | null } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth/public");
+    }
+  }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name, email, phone")
+          .eq("id", user.id)
+          .maybeSingle();
+        
+        if (data) {
+          setProfile(data);
+        }
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const displayName = profile?.full_name || user?.email || "User";
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,34 +167,36 @@ const PublicDashboard = () => {
                 <div className="space-y-6 py-4">
                   <div className="flex items-center gap-4">
                     <Avatar className="w-16 h-16">
-                      <AvatarImage src={mockUserProfile.avatar || undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary text-xl">
-                        {mockUserProfile.name.split(" ").map(n => n[0]).join("")}
+                        {displayName.split(" ").map(n => n[0]).join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground">{mockUserProfile.name}</h3>
-                      <p className="text-sm text-muted-foreground">Member since {mockUserProfile.joinedDate}</p>
+                      <h3 className="text-lg font-semibold text-foreground">{displayName}</h3>
+                      <p className="text-sm text-muted-foreground">Member</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="flex items-center justify-between py-2 border-b border-border">
                       <span className="text-sm text-muted-foreground">Email</span>
-                      <span className="text-sm font-medium text-foreground">{mockUserProfile.email}</span>
+                      <span className="text-sm font-medium text-foreground">{profile?.email || user?.email}</span>
                     </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border">
-                      <span className="text-sm text-muted-foreground">Phone</span>
-                      <span className="text-sm font-medium text-foreground">{mockUserProfile.phone}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border">
-                      <span className="text-sm text-muted-foreground">Address</span>
-                      <span className="text-sm font-medium text-foreground text-right max-w-[200px]">{mockUserProfile.address}</span>
-                    </div>
+                    {profile?.phone && (
+                      <div className="flex items-center justify-between py-2 border-b border-border">
+                        <span className="text-sm text-muted-foreground">Phone</span>
+                        <span className="text-sm font-medium text-foreground">{profile.phone}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </DialogContent>
             </Dialog>
+
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
