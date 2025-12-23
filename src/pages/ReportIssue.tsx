@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Upload, X, FileText, Image, File, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, X, FileText, Image, File, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,16 +28,82 @@ const issueTypes = [
   "Other",
 ];
 
+interface LocationData {
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+}
+
 const ReportIssue = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     issueType: "",
   });
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [location, setLocation] = useState<LocationData>({
+    latitude: null,
+    longitude: null,
+    address: null,
+  });
+
+  const fetchCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsFetchingLocation(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setLocation((prev) => ({ ...prev, latitude, longitude }));
+
+        // Try to get address using reverse geocoding (optional)
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+          );
+          const data = await response.json();
+          if (data.display_name) {
+            setLocation((prev) => ({ ...prev, address: data.display_name }));
+          }
+        } catch (error) {
+          console.log("Could not fetch address:", error);
+        }
+
+        setIsFetchingLocation(false);
+        toast.success("Location fetched successfully");
+      },
+      (error) => {
+        setIsFetchingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Location permission denied. Please enable location access.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location information is unavailable.");
+            break;
+          case error.TIMEOUT:
+            toast.error("Location request timed out.");
+            break;
+          default:
+            toast.error("An error occurred while fetching location.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  useEffect(() => {
+    // Auto-fetch location on component mount
+    fetchCurrentLocation();
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -144,6 +210,9 @@ const ReportIssue = () => {
         description: formData.description.trim(),
         issue_type: formData.issueType,
         file_url: fileUrl,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        location_address: location.address,
       });
 
       if (error) {
@@ -258,6 +327,48 @@ const ReportIssue = () => {
                 />
                 <p className="text-xs text-muted-foreground">
                   {formData.description.length}/1000 characters
+                </p>
+              </div>
+
+              {/* Location */}
+              <div className="space-y-2">
+                <Label className="text-foreground">Location</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1 p-3 rounded-lg bg-accent/50 border border-border">
+                    {location.latitude && location.longitude ? (
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+                          </p>
+                          {location.address && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {location.address}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No location data</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={fetchCurrentLocation}
+                    disabled={isFetchingLocation}
+                    className="flex-shrink-0"
+                  >
+                    {isFetchingLocation ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <MapPin className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Click the button to refresh your current location
                 </p>
               </div>
 
