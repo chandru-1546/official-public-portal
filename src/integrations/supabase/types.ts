@@ -21,6 +21,9 @@ export type Database = {
           file_url: string | null
           id: string
           issue_type: string
+          latitude: number | null
+          location_address: string | null
+          longitude: number | null
           status: string
           title: string
           updated_at: string
@@ -32,6 +35,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           issue_type: string
+          latitude?: number | null
+          location_address?: string | null
+          longitude?: number | null
           status?: string
           title: string
           updated_at?: string
@@ -43,6 +49,9 @@ export type Database = {
           file_url?: string | null
           id?: string
           issue_type?: string
+          latitude?: number | null
+          location_address?: string | null
+          longitude?: number | null
           status?: string
           title?: string
           updated_at?: string
