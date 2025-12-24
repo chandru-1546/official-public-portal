@@ -91,23 +91,42 @@ const IssuesMap = ({ issues, center = [13.0827, 80.2707], zoom = 12 }: IssuesMap
           icon={createCustomIcon(issue.status)}
         >
           <Popup>
-            <div className="p-2 min-w-[200px]">
-              <h3 className="font-semibold text-sm mb-1">{issue.title}</h3>
-              <p className="text-xs text-gray-600 mb-2">{issue.description}</p>
-              <div className="flex flex-wrap gap-1 mb-2">
-                <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100">
-                  {issue.issue_type}
-                </span>
-                <span
-                  className="px-2 py-0.5 text-xs rounded-full text-white"
-                  style={{ backgroundColor: getStatusColor(issue.status) }}
-                >
-                  {issue.status}
-                </span>
+            <div className="min-w-[280px] max-w-[320px]">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-4">
+                  <h3 className="font-bold text-base text-gray-900 mb-2 leading-tight">{issue.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
+                  
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700 capitalize">
+                      {issue.issue_type.replace('_', ' ')}
+                    </span>
+                    <span
+                      className="px-3 py-1 text-xs font-medium rounded-full text-white capitalize"
+                      style={{ backgroundColor: getStatusColor(issue.status) }}
+                    >
+                      {issue.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                  
+                  {issue.location_address && (
+                    <div className="flex items-start gap-2 text-xs text-gray-500 mb-2">
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span className="leading-tight">{issue.location_address}</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-2 text-xs text-gray-400 pt-2 border-t border-gray-100">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{new Date(issue.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                </div>
               </div>
-              {issue.location_address && (
-                <p className="text-xs text-gray-500">{issue.location_address}</p>
-              )}
             </div>
           </Popup>
         </Marker>
