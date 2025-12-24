@@ -2,14 +2,33 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { LogOut, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import AdminHeader from "@/components/admin/AdminHeader";
+import HomeTab from "@/components/admin/HomeTab";
+import DashboardTab from "@/components/admin/DashboardTab";
+import ReportsList from "@/components/admin/ReportsList";
+import DepartmentsTab from "@/components/admin/DepartmentsTab";
+
+interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  issue_type: string;
+  status: string;
+  location_address: string | null;
+  created_at: string;
+}
 
 const OfficialDashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [activeView, setActiveView] = useState("home");
+  const [adminTab, setAdminTab] = useState("dashboard");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -18,22 +37,53 @@ const OfficialDashboard = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    const fetchRole = async () => {
+    const fetchData = async () => {
       if (user) {
-        const { data } = await supabase
+        // Fetch role
+        const { data: roleData } = await supabase
           .from("user_roles")
           .select("role, zone")
           .eq("user_id", user.id)
           .maybeSingle();
         
-        if (data) {
-          setUserRole(data.role);
+        if (roleData) {
+          setUserRole(roleData.role);
         }
+
+        // Fetch all issues
+        const { data: issuesData, error } = await supabase
+          .from("issues")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) {
+          console.error("Error fetching issues:", error);
+          toast.error("Failed to load issues");
+        } else {
+          setIssues(issuesData || []);
+        }
+        
         setLoading(false);
       }
     };
-    fetchRole();
+    fetchData();
   }, [user]);
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("issues")
+      .update({ status: newStatus })
+      .eq("id", id);
+    
+    if (error) {
+      toast.error("Failed to update status");
+    } else {
+      setIssues(prev => prev.map(issue => 
+        issue.id === id ? { ...issue, status: newStatus } : issue
+      ));
+      toast.success("Status updated successfully");
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -49,33 +99,92 @@ const OfficialDashboard = () => {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col">
-      {/* Header with logout */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold text-foreground">Official Portal</h1>
-          {userRole && (
-            <span className="text-sm text-muted-foreground capitalize">
-              ({userRole.replace("_", " ")})
-            </span>
-          )}
-        </div>
-        <Button variant="outline" size="sm" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button>
-      </header>
+    <div className="min-h-screen w-full flex flex-col bg-background">
+      <AdminHeader
+        userRole={userRole}
+        activeTab={activeView}
+        onTabChange={setActiveView}
+        onLogout={handleLogout}
+      />
 
-      {/* Iframe content */}
-      <div className="flex-1">
-        <iframe
-          src="https://id-preview--be4e1b6f-e14e-4c1c-9b88-0a5b86b43685.lovable.app/"
-          className="w-full h-full border-0"
-          title="CivicFix Official Portal"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
+      <main className="flex-1 p-6">
+        {activeView === "home" && <HomeTab issues={issues} />}
+        
+        {activeView === "dashboard" && <DashboardTab issues={issues} />}
+        
+        {activeView === "admin" && (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Municipal Admin Portal</h1>
+              <p className="text-muted-foreground">
+                Manage civic issue reports, assign tasks, and track departmental performance.
+              </p>
+            </div>
+
+            <Tabs value={adminTab} onValueChange={setAdminTab}>
+              <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                <TabsTrigger value="reports">Reports</TabsTrigger>
+                <TabsTrigger value="departments">Departments</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="dashboard" className="mt-6">
+                <DashboardTab issues={issues} />
+              </TabsContent>
+
+              <TabsContent value="reports" className="mt-6">
+                <ReportsList issues={issues} onUpdateStatus={handleUpdateStatus} />
+              </TabsContent>
+
+              <TabsContent value="departments" className="mt-6">
+                <DepartmentsTab />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border bg-muted/30 py-8 px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-4 gap-8">
+          <div>
+            <h3 className="font-bold text-foreground mb-3">CivicFix</h3>
+            <p className="text-sm text-muted-foreground">
+              Empowering communities to report, track, and resolve civic issues efficiently.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Platform</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>How It Works</li>
+              <li>Report Issue</li>
+              <li>Dashboard</li>
+              <li>Admin Portal</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Support</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>Help Center</li>
+              <li>Contact Us</li>
+              <li>API Documentation</li>
+              <li>Status Page</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-semibold text-foreground mb-3">Legal</h4>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li>Privacy Policy</li>
+              <li>Terms of Service</li>
+              <li>Cookie Policy</li>
+              <li>Accessibility</li>
+            </ul>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-8 pt-4 border-t border-border text-center text-sm text-muted-foreground">
+          © 2024 CivicFix. All rights reserved. Built for better communities.
+        </div>
+      </footer>
     </div>
   );
 };
