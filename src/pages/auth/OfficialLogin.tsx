@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Mail, Lock, User, ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { Shield, Mail, Lock, User, ArrowLeft, Loader2, MapPin, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -38,6 +38,17 @@ const zones = [
   { value: "zone_e", label: "Zone E - Central District" },
 ];
 
+const departments = [
+  { value: "roads", label: "Roads & Infrastructure" },
+  { value: "water", label: "Water Supply" },
+  { value: "electricity", label: "Electricity" },
+  { value: "sanitation", label: "Sanitation & Waste" },
+  { value: "parks", label: "Parks & Recreation" },
+  { value: "housing", label: "Housing & Buildings" },
+  { value: "traffic", label: "Traffic & Transport" },
+  { value: "general", label: "General Services" },
+];
+
 const OfficialLogin = () => {
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
@@ -54,6 +65,7 @@ const OfficialLogin = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupRole, setSignupRole] = useState("");
   const [signupZone, setSignupZone] = useState("");
+  const [signupDepartment, setSignupDepartment] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +126,7 @@ const OfficialLogin = () => {
       return;
     }
 
-    const { error } = await signUp(signupEmail, signupPassword, signupName, "official", signupRole, signupZone);
+    const { error } = await signUp(signupEmail, signupPassword, signupName, "official", signupRole, signupZone, signupDepartment);
 
     if (error) {
       toast({
@@ -265,24 +277,44 @@ const OfficialLogin = () => {
                   </Select>
                 </div>
                 {(signupRole === "zone_officer" || signupRole === "field_officer") && (
-                  <div className="space-y-2">
-                    <Label>Assigned Zone</Label>
-                    <Select value={signupZone} onValueChange={setSignupZone}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your zone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {zones.map((zone) => (
-                          <SelectItem key={zone.value} value={zone.value}>
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-3 h-3" />
-                              {zone.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <>
+                    <div className="space-y-2">
+                      <Label>Assigned Zone</Label>
+                      <Select value={signupZone} onValueChange={setSignupZone}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your zone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {zones.map((zone) => (
+                            <SelectItem key={zone.value} value={zone.value}>
+                              <div className="flex items-center gap-2">
+                                <MapPin className="w-3 h-3" />
+                                {zone.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Department</Label>
+                      <Select value={signupDepartment} onValueChange={setSignupDepartment}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.value} value={dept.value}>
+                              <div className="flex items-center gap-2">
+                                <Building2 className="w-3 h-3" />
+                                {dept.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (
