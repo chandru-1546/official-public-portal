@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, portalType: "public" | "official", role?: string, zone?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, portalType: "public" | "official", role?: string, zone?: string, department?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -50,7 +50,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fullName: string,
     portalType: "public" | "official",
     role?: string,
-    zone?: string
+    zone?: string,
+    department?: string
   ) => {
     const redirectUrl = `${window.location.origin}/`;
 
@@ -91,6 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             user_id: data.user.id,
             role: role as "administrator" | "zone_officer" | "field_officer" | "supervisor",
             zone: zone || null,
+            department: department || null,
           });
 
         if (roleError) {
