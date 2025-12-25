@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Search, Filter, UserPlus, RefreshCw } from "lucide-react";
+import { MapPin, Search, Filter, UserPlus, RefreshCw, Building2 } from "lucide-react";
 import { useState } from "react";
+import AssignmentDialog from "./AssignmentDialog";
 
 interface Issue {
   id: string;
@@ -14,16 +15,30 @@ interface Issue {
   status: string;
   location_address: string | null;
   created_at: string;
+  assigned_department: string | null;
+  assigned_at: string | null;
 }
 
 interface ReportsListProps {
   issues: Issue[];
   onUpdateStatus: (id: string, status: string) => void;
+  onAssign: (issueId: string, department: string, notes: string) => Promise<void>;
 }
+
+const DEPARTMENT_LABELS: Record<string, string> = {
+  roads: "Roads & Infrastructure",
+  water: "Water & Sewerage",
+  electricity: "Electricity",
+  sanitation: "Sanitation & Waste",
+  parks: "Parks & Recreation",
+  drainage: "Storm Drainage",
+  traffic: "Traffic Management",
+  general: "General Services",
+};
 
 const getStatusBadge = (status: string) => {
   const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-    pending: { variant: "destructive", label: "In Progress" },
+    pending: { variant: "destructive", label: "Pending" },
     in_progress: { variant: "default", label: "In Progress" },
     resolved: { variant: "secondary", label: "Resolved" },
     acknowledged: { variant: "outline", label: "Acknowledged" },
@@ -44,9 +59,11 @@ const getPriorityBadge = (issueType: string) => {
   return <Badge className={priority.color}>{priority.label}</Badge>;
 };
 
-const ReportsList = ({ issues, onUpdateStatus }: ReportsListProps) => {
+const ReportsList = ({ issues, onUpdateStatus, onAssign }: ReportsListProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
   const filteredIssues = issues.filter((issue) => {
     const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,6 +71,11 @@ const ReportsList = ({ issues, onUpdateStatus }: ReportsListProps) => {
     const matchesFilter = filterStatus === "all" || issue.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
+
+  const handleOpenAssign = (issue: Issue) => {
+    setSelectedIssue(issue);
+    setAssignDialogOpen(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -117,27 +139,46 @@ const ReportsList = ({ issues, onUpdateStatus }: ReportsListProps) => {
                         </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Assigned To</p>
-                        <p className="font-medium">Unassigned</p>
-                      </div>
-                      <div>
                         <p className="text-muted-foreground text-xs">Department</p>
-                        <p className="font-medium capitalize">{issue.issue_type.replace("_", " ")}</p>
+                        <p className="font-medium flex items-center gap-1">
+                          {issue.assigned_department ? (
+                            <>
+                              <Building2 className="w-3 h-3 text-primary" />
+                              {DEPARTMENT_LABELS[issue.assigned_department] || issue.assigned_department}
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">Unassigned</span>
+                          )}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground text-xs">Est. Completion</p>
-                        <p className="font-medium">TBD</p>
+                        <p className="text-muted-foreground text-xs">Assigned On</p>
+                        <p className="font-medium">
+                          {issue.assigned_at 
+                            ? new Date(issue.assigned_at).toLocaleDateString()
+                            : "—"
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Issue Type</p>
+                        <p className="font-medium capitalize">{issue.issue_type.replace("_", " ")}</p>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-3">
                       {getStatusBadge(issue.status)}
                       {getPriorityBadge(issue.issue_type)}
+                      {issue.assigned_department && (
+                        <Badge variant="outline" className="bg-primary/5">
+                          Assigned
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 ml-4">
-                    <Button size="sm" className="gap-1">
+                    <Button size="sm" className="gap-1" onClick={() => handleOpenAssign(issue)}>
                       <UserPlus className="w-3 h-3" />
-                      Assign
+                      {issue.assigned_department ? "Reassign" : "Assign"}
                     </Button>
                     <Button 
                       variant="outline" 
@@ -155,6 +196,17 @@ const ReportsList = ({ issues, onUpdateStatus }: ReportsListProps) => {
           ))
         )}
       </div>
+
+      {selectedIssue && (
+        <AssignmentDialog
+          open={assignDialogOpen}
+          onOpenChange={setAssignDialogOpen}
+          issueId={selectedIssue.id}
+          issueTitle={selectedIssue.title}
+          currentDepartment={selectedIssue.assigned_department}
+          onAssign={onAssign}
+        />
+      )}
     </div>
   );
 };

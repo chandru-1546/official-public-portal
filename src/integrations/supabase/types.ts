@@ -14,8 +14,49 @@ export type Database = {
   }
   public: {
     Tables: {
+      issue_assignments: {
+        Row: {
+          assigned_by: string
+          assigned_to: string | null
+          created_at: string
+          department: string | null
+          id: string
+          issue_id: string
+          notes: string | null
+        }
+        Insert: {
+          assigned_by: string
+          assigned_to?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          issue_id: string
+          notes?: string | null
+        }
+        Update: {
+          assigned_by?: string
+          assigned_to?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          issue_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_assignments_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issues: {
         Row: {
+          assigned_at: string | null
+          assigned_department: string | null
+          assigned_to: string | null
           created_at: string
           description: string
           file_url: string | null
@@ -30,6 +71,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_department?: string | null
+          assigned_to?: string | null
           created_at?: string
           description: string
           file_url?: string | null
@@ -44,6 +88,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_at?: string | null
+          assigned_department?: string | null
+          assigned_to?: string | null
           created_at?: string
           description?: string
           file_url?: string | null
