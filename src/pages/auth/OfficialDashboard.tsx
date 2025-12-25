@@ -19,6 +19,9 @@ interface Issue {
   status: string;
   location_address: string | null;
   created_at: string;
+  assigned_to: string | null;
+  assigned_department: string | null;
+  assigned_at: string | null;
 }
 
 const OfficialDashboard = () => {
@@ -85,6 +88,42 @@ const OfficialDashboard = () => {
     }
   };
 
+  const handleAssign = async (issueId: string, department: string, notes: string) => {
+    const now = new Date().toISOString();
+    
+    // Update issue with assignment
+    const { error: updateError } = await supabase
+      .from("issues")
+      .update({ 
+        assigned_department: department,
+        assigned_at: now,
+        status: "in_progress"
+      })
+      .eq("id", issueId);
+    
+    if (updateError) {
+      toast.error("Failed to assign issue");
+      return;
+    }
+
+    // Log assignment history
+    await supabase.from("issue_assignments").insert({
+      issue_id: issueId,
+      assigned_by: user!.id,
+      department,
+      notes: notes || null,
+    });
+
+    // Update local state
+    setIssues(prev => prev.map(issue => 
+      issue.id === issueId 
+        ? { ...issue, assigned_department: department, assigned_at: now, status: "in_progress" } 
+        : issue
+    ));
+    
+    toast.success("Issue assigned successfully");
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate("/");
@@ -133,7 +172,7 @@ const OfficialDashboard = () => {
               </TabsContent>
 
               <TabsContent value="reports" className="mt-6">
-                <ReportsList issues={issues} onUpdateStatus={handleUpdateStatus} />
+                <ReportsList issues={issues} onUpdateStatus={handleUpdateStatus} onAssign={handleAssign} />
               </TabsContent>
 
               <TabsContent value="departments" className="mt-6">
