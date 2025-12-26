@@ -7,6 +7,10 @@ interface Issue {
   title: string;
   status: string;
   issue_type: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  assigned_zone?: string | null;
+  assigned_department?: string | null;
 }
 
 interface HomeTabProps {
