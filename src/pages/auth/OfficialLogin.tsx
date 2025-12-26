@@ -10,6 +10,7 @@ import { Shield, Mail, Lock, User, ArrowLeft, Loader2, MapPin, Building2 } from 
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { zones } from "@/lib/zones";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -28,14 +29,6 @@ const roles = [
   { value: "zone_officer", label: "Zone Officer" },
   { value: "field_officer", label: "Field Officer" },
   { value: "supervisor", label: "Supervisor" },
-];
-
-const zones = [
-  { value: "zone_a", label: "Zone A - North District" },
-  { value: "zone_b", label: "Zone B - South District" },
-  { value: "zone_c", label: "Zone C - East District" },
-  { value: "zone_d", label: "Zone D - West District" },
-  { value: "zone_e", label: "Zone E - Central District" },
 ];
 
 const departments = [
