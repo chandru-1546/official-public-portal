@@ -18,9 +18,12 @@ interface Issue {
   issue_type: string;
   status: string;
   location_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   assigned_to: string | null;
   assigned_department: string | null;
+  assigned_zone: string | null;
   assigned_at: string | null;
 }
 
@@ -28,6 +31,8 @@ const OfficialDashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userZone, setUserZone] = useState<string | null>(null);
+  const [userDepartment, setUserDepartment] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [activeView, setActiveView] = useState("home");
@@ -42,22 +47,36 @@ const OfficialDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (user) {
-        // Fetch role
+        // Fetch role, zone, and department
         const { data: roleData } = await supabase
           .from("user_roles")
-          .select("role, zone")
+          .select("role, zone, department")
           .eq("user_id", user.id)
           .maybeSingle();
         
         if (roleData) {
           setUserRole(roleData.role);
+          setUserZone(roleData.zone);
+          setUserDepartment(roleData.department);
         }
 
-        // Fetch all issues
-        const { data: issuesData, error } = await supabase
+        // Fetch issues - filter based on role
+        let query = supabase
           .from("issues")
           .select("*")
           .order("created_at", { ascending: false });
+
+        // If zone officer or field officer, filter by their assigned zone and department
+        if (roleData && (roleData.role === "zone_officer" || roleData.role === "field_officer")) {
+          if (roleData.zone) {
+            query = query.eq("assigned_zone", roleData.zone);
+          }
+          if (roleData.department) {
+            query = query.eq("assigned_department", roleData.department);
+          }
+        }
+        
+        const { data: issuesData, error } = await query;
         
         if (error) {
           console.error("Error fetching issues:", error);
@@ -88,14 +107,15 @@ const OfficialDashboard = () => {
     }
   };
 
-  const handleAssign = async (issueId: string, department: string, notes: string) => {
+  const handleAssign = async (issueId: string, department: string, zone: string, notes: string) => {
     const now = new Date().toISOString();
     
-    // Update issue with assignment
+    // Update issue with assignment including zone
     const { error: updateError } = await supabase
       .from("issues")
       .update({ 
         assigned_department: department,
+        assigned_zone: zone,
         assigned_at: now,
         status: "in_progress"
       })
@@ -117,11 +137,11 @@ const OfficialDashboard = () => {
     // Update local state
     setIssues(prev => prev.map(issue => 
       issue.id === issueId 
-        ? { ...issue, assigned_department: department, assigned_at: now, status: "in_progress" } 
+        ? { ...issue, assigned_department: department, assigned_zone: zone, assigned_at: now, status: "in_progress" } 
         : issue
     ));
     
-    toast.success("Issue assigned successfully");
+    toast.success(`Issue assigned to ${zone} → ${department}`);
   };
 
   const handleLogout = async () => {

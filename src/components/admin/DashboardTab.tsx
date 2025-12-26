@@ -10,7 +10,11 @@ interface Issue {
   issue_type: string;
   status: string;
   location_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
+  assigned_zone: string | null;
+  assigned_department: string | null;
 }
 
 interface DashboardTabProps {

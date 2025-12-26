@@ -14,15 +14,18 @@ interface Issue {
   issue_type: string;
   status: string;
   location_address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
   assigned_department: string | null;
+  assigned_zone: string | null;
   assigned_at: string | null;
 }
 
 interface ReportsListProps {
   issues: Issue[];
   onUpdateStatus: (id: string, status: string) => void;
-  onAssign: (issueId: string, department: string, notes: string) => Promise<void>;
+  onAssign: (issueId: string, department: string, zone: string, notes: string) => Promise<void>;
 }
 
 const DEPARTMENT_LABELS: Record<string, string> = {
@@ -203,7 +206,10 @@ const ReportsList = ({ issues, onUpdateStatus, onAssign }: ReportsListProps) => 
           onOpenChange={setAssignDialogOpen}
           issueId={selectedIssue.id}
           issueTitle={selectedIssue.title}
+          latitude={selectedIssue.latitude}
+          longitude={selectedIssue.longitude}
           currentDepartment={selectedIssue.assigned_department}
+          currentZone={selectedIssue.assigned_zone}
           onAssign={onAssign}
         />
       )}

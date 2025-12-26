@@ -57,6 +57,7 @@ export type Database = {
           assigned_at: string | null
           assigned_department: string | null
           assigned_to: string | null
+          assigned_zone: string | null
           created_at: string
           description: string
           file_url: string | null
@@ -74,6 +75,7 @@ export type Database = {
           assigned_at?: string | null
           assigned_department?: string | null
           assigned_to?: string | null
+          assigned_zone?: string | null
           created_at?: string
           description: string
           file_url?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           assigned_at?: string | null
           assigned_department?: string | null
           assigned_to?: string | null
+          assigned_zone?: string | null
           created_at?: string
           description?: string
           file_url?: string | null
