@@ -42,9 +42,9 @@ const DEPARTMENT_LABELS: Record<string, string> = {
 const getStatusBadge = (status: string) => {
   const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
     pending: { variant: "destructive", label: "Pending" },
-    in_progress: { variant: "default", label: "In Progress" },
+    "in-progress": { variant: "default", label: "In Progress" },
     resolved: { variant: "secondary", label: "Resolved" },
-    acknowledged: { variant: "outline", label: "Acknowledged" },
+    rejected: { variant: "outline", label: "Rejected" },
   };
   const config = statusConfig[status] || { variant: "outline", label: status };
   return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -102,9 +102,9 @@ const ReportsList = ({ issues, onUpdateStatus, onAssign }: ReportsListProps) => 
           <SelectContent>
             <SelectItem value="all">All Reports</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
             <SelectItem value="resolved">Resolved</SelectItem>
-            <SelectItem value="acknowledged">Acknowledged</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -187,7 +187,7 @@ const ReportsList = ({ issues, onUpdateStatus, onAssign }: ReportsListProps) => 
                       variant="outline" 
                       size="sm" 
                       className="gap-1"
-                      onClick={() => onUpdateStatus(issue.id, issue.status === "pending" ? "in_progress" : "resolved")}
+                      onClick={() => onUpdateStatus(issue.id, issue.status === "pending" ? "in-progress" : "resolved")}
                     >
                       <RefreshCw className="w-3 h-3" />
                       Update Status
