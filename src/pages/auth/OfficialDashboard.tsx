@@ -117,11 +117,12 @@ const OfficialDashboard = () => {
         assigned_department: department,
         assigned_zone: zone,
         assigned_at: now,
-        status: "in_progress"
+        status: "in-progress"
       })
       .eq("id", issueId);
     
     if (updateError) {
+      console.error("Assignment error:", updateError);
       toast.error("Failed to assign issue");
       return;
     }
@@ -137,7 +138,7 @@ const OfficialDashboard = () => {
     // Update local state
     setIssues(prev => prev.map(issue => 
       issue.id === issueId 
-        ? { ...issue, assigned_department: department, assigned_zone: zone, assigned_at: now, status: "in_progress" } 
+        ? { ...issue, assigned_department: department, assigned_zone: zone, assigned_at: now, status: "in-progress" } 
         : issue
     ));
     

@@ -40,10 +40,10 @@ const DashboardTab = ({ issues }: DashboardTabProps) => {
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      pending: { variant: "destructive", label: "In Progress" },
-      in_progress: { variant: "default", label: "In Progress" },
+      pending: { variant: "destructive", label: "Pending" },
+      "in-progress": { variant: "default", label: "In Progress" },
       resolved: { variant: "secondary", label: "Resolved" },
-      acknowledged: { variant: "outline", label: "Acknowledged" },
+      rejected: { variant: "outline", label: "Rejected" },
     };
     const c = config[status] || { variant: "outline", label: status };
     return <Badge variant={c.variant}>{c.label}</Badge>;
